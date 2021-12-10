@@ -143,21 +143,25 @@ namespace lin_processor {
   // TODO: Not use, as of Apr 2014.
   DEFINE_OUTPUT_PIN(tx1_pin, C, 2, 1);
 
+  #ifdef DEBUG
   // Debugging signals.
   DEFINE_OUTPUT_PIN(break_pin, C, 0, 0);
   DEFINE_OUTPUT_PIN(sample_pin, B, 4, 0);
   DEFINE_OUTPUT_PIN(error_pin, B, 3, 0);
   DEFINE_OUTPUT_PIN(isr_pin, C, 3, 0);
   DEFINE_OUTPUT_PIN(gp_pin, D, 6, 0);
+  #endif
 
   // Called one during initialization.
   static inline void setupPins() {
     rx_pin::setup();
+    #ifdef DEBUG
     break_pin::setup();
     sample_pin::setup();
     error_pin::setup();
     isr_pin::setup();
     gp_pin::setup();
+    #endif
   }
 
   // ----- ISR RX Ring Buffers -----
@@ -279,10 +283,14 @@ namespace lin_processor {
 
   // Private. Called from ISR and from setup (beofe starting the ISR).
   static inline void setErrorFlags(uint8 flags) {
+    #ifdef DEBUG
     error_pin::setHigh();
+    #endif
     // Non atomic when called from setup() but should be fine since ISR is not running yet.
     error_flags |= flags;
+    #ifdef DEBUG
     error_pin::setLow();
+    #endif
   }
 
   // Called from main. Public. Assumed interrupts are enabled.
@@ -453,11 +461,15 @@ namespace lin_processor {
     }
 
     // Detected a break. Wait for rx high and enter data reading.
+    #ifdef DEBUG
     break_pin::setHigh();
+    #endif
 
     // TODO: set actual max count
     waitForRxHigh(255);
+    #ifdef DEBUG
     break_pin::setLow();
+    #endif
 
     // Go process the data
     StateReadData::enter();
@@ -485,9 +497,13 @@ namespace lin_processor {
 
   inline void StateReadData::handleIsr() {
     // Sample data bit ASAP to avoid jitter.
+    #ifdef DEBUG
     sample_pin::setHigh();
+    #endif
     const uint8 is_rx_high = rx_pin::isHigh();
+    #ifdef DEBUG
     sample_pin::setLow();
+    #endif
 
     // Handle start bit.
     if (bits_read_in_byte_ == 0) {
@@ -594,7 +610,9 @@ namespace lin_processor {
   // Interrupt on Timer 2 A-match.
   ISR(TIMER2_COMPA_vect)
   {
+    #ifdef DEBUG
     isr_pin::setHigh();
+    #endif
     // TODO: make this state a boolean instead of enum? (efficency).
     switch (state) {
     case states::DETECT_BREAK:
@@ -613,6 +631,8 @@ namespace lin_processor {
     // jitter.
     isr_marker++;
 
+    #ifdef DEBUG
     isr_pin::setLow();
+    #endif
   }
 }  // namespace lin_processor

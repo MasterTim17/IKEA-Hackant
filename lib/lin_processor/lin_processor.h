@@ -16,6 +16,8 @@
 #include "avr_util.h"
 #include "lin_frame.h"
 
+// #define DEBUG
+
 // Uses 
 // * Timer2 - used to generate the bit ticks.
 // * OC2B (PD3) - timer output ticks. For debugging. If needed, can be changed
