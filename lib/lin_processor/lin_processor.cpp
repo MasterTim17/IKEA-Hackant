@@ -46,7 +46,7 @@ static const uint8 kMaxSpaceBits = 8;
       PORT ## port_letter |= kPinMask;  \
     } \
     static inline uint8 isHigh() { \
-      return  invert^(PIN##port_letter & kPinMask); \
+      return  invert^((PIN##port_letter & kPinMask)>0); \
     } \
   }
 
@@ -140,9 +140,9 @@ namespace lin_processor {
   // This way we shave a few cycles from the ISR.
 
   // LIN interface.
-  DEFINE_INPUT_PIN(rx_pin, D, 2, 0);
+  DEFINE_INPUT_PIN(rx_pin, D, 2, 1);
   // TODO: Not use, as of Apr 2014.
-  DEFINE_OUTPUT_PIN(tx1_pin, C, 2, 1);
+  // DEFINE_OUTPUT_PIN(tx1_pin, C, 2, 1);
 
   #ifdef DEBUG
   // Debugging signals.
