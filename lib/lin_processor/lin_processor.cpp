@@ -37,7 +37,8 @@ static const uint8 kMaxSpaceBits = 8;
 // Define an input pin with fast access. Using the macro does
 // not increase the pin access time compared to direct bit manipulation.
 // Pin is setup with active pullup.
-#define DEFINE_INPUT_PIN(name, port_letter, bit_index) \
+// invert = 1, invert pin read
+#define DEFINE_INPUT_PIN(name, port_letter, bit_index, invert) \
   namespace name { \
     static const uint8 kPinMask  = H(bit_index); \
     static inline void setup() { \
@@ -45,7 +46,7 @@ static const uint8 kMaxSpaceBits = 8;
       PORT ## port_letter |= kPinMask;  \
     } \
     static inline uint8 isHigh() { \
-      return  PIN##port_letter & kPinMask; \
+      return  invert^(PIN##port_letter & kPinMask); \
     } \
   }
 
@@ -139,7 +140,7 @@ namespace lin_processor {
   // This way we shave a few cycles from the ISR.
 
   // LIN interface.
-  DEFINE_INPUT_PIN(rx_pin, D, 2);
+  DEFINE_INPUT_PIN(rx_pin, D, 2, 0);
   // TODO: Not use, as of Apr 2014.
   DEFINE_OUTPUT_PIN(tx1_pin, C, 2, 1);
 
