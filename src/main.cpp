@@ -19,7 +19,6 @@
 #include "system_clock.h"
 #include <EEPROM.h>
 
-
 uint16_t lastPosition = 0;
 uint16_t memOne = 0;
 uint16_t memTwo = 0;
@@ -29,19 +28,20 @@ uint8_t initializedTarget = false;
 uint8_t targetThreshold = 0;
 uint8_t currentTableMovement = 0;
 
+const int moveUp = A1;
+const int moveUpCheck = A0;
+const int moveDown = A2;
+const int moveDownCheck = A3;
 
-const int moveTableUpPin = PD4;
-const int moveTableDownPin = PD7;
-
-const int moveUpButton = PD3;
-const int moveM2Button = PD6;
-const int moveM1Button = PD5;
-const int moveDownButton = 8;
+bool upState = false;
+bool downState = false;
 
 int pressedButton = 0;
 int lastPressedButton = 0;
 unsigned long lastPressed = 0;
-uint8_t doOnce = false;
+unsigned long lastReleased = 0;
+uint8_t clickCount = 0;
+uint8_t autoMove = false;
 
 
 void printValues() {
@@ -116,16 +116,18 @@ void moveTable(uint8_t direction) {
     currentTableMovement = direction;
     if (direction == 0) {
       Serial.println("Table stops");
-      digitalWrite(moveTableUpPin, HIGH);
-      digitalWrite(moveTableDownPin, HIGH);
+      pinMode(moveUp, INPUT);
+      pinMode(moveDown, INPUT);
     } else if (direction == 1) {
       Serial.println("Table goes up");
-      digitalWrite(moveTableDownPin, HIGH);
-      digitalWrite(moveTableUpPin, LOW);
+      pinMode(moveUp, OUTPUT);
+      digitalWrite(moveUp, 0);
+      pinMode(moveDown, INPUT);
     } else {
       Serial.println("Table goes down");
-      digitalWrite(moveTableUpPin, HIGH);
-      digitalWrite(moveTableDownPin, LOW);
+      pinMode(moveUp, INPUT);
+      pinMode(moveDown, OUTPUT);
+      digitalWrite(moveDown, 0);
     }
   }
 }
@@ -184,136 +186,108 @@ void processLINFrame(LinFrame frame) {
 
 void readButtons() {
 
-  if (digitalRead(moveUpButton) == HIGH) {
-
-    pressedButton = moveUpButton;
-    if (lastPressedButton != pressedButton) {
+  if (!digitalRead(moveUpCheck)) {
+    pressedButton = moveUpCheck;
+    if (!upState){
       Serial.println("Button UP Pressed");
+      lastPressed = millis();
+      upState = true; 
       lastPressedButton = pressedButton;
     }
-    return;
-  }
-
-  if (digitalRead(moveM1Button) == HIGH) {
-    pressedButton = moveM1Button;
-    if (lastPressedButton != pressedButton) {
-      Serial.println("Button M1 Pressed");
-      lastPressedButton = pressedButton;
-
+  }else{
+    if (upState){
+      pressedButton = moveUpCheck;
+      Serial.println("Button UP Relased");
+      lastReleased = millis();
+      upState = false;
     }
-    return;
   }
 
-  if (digitalRead(moveM2Button) == HIGH) {
-    pressedButton = moveM2Button;
-    if (lastPressedButton != pressedButton) {
-      Serial.println("Button M2 Pressed");
-      lastPressedButton = pressedButton;
-
-    }
-    return;
-  }
-
-  if (digitalRead(moveDownButton) == HIGH) {
-    pressedButton = moveDownButton;
-    if (lastPressedButton != pressedButton) {
+  if (!digitalRead(moveDownCheck)) {
+    pressedButton = moveDownCheck;
+    if (!downState){
       Serial.println("Button DN Pressed");
+      lastPressed = millis();
+      downState = true; 
       lastPressedButton = pressedButton;
     }
-    return;
+  }else{
+    if (downState){
+      pressedButton = moveDownCheck;
+      Serial.println("Button DN Relased");
+      lastReleased = millis();
+      downState = false;
+    }
   }
 
-
-  pressedButton = 0;
+  if(autoMove){
+    // read analog voltage for detecting a manual button press and stop moving table
+    if(analogRead(moveUpCheck)<50 || analogRead(moveDownCheck)<50){
+      currentTarget = lastPosition;
+      autoMove = false;
+      Serial.println("manual stop");
+    }
+  }
 
 }
 
 void loopButtons() {
 
-  if (pressedButton != 0) {
-
-    if (lastPressedButton == moveUpButton) {
-      moveTable(1);
-      currentTarget = lastPosition + (targetThreshold * 2);
-    } else if (lastPressedButton == moveDownButton) {
-      moveTable(2);
-      currentTarget = lastPosition - (targetThreshold * 2);
-    } else {
-      if (doOnce == false) {
-        lastPressed = millis();
-        doOnce = true;
-      }
+  // detect short press
+  if(pressedButton != 0){
+    if (lastReleased-lastPressed < 200){
+      clickCount++;
+      lastPressed = 0;
+      pressedButton = 0;
     }
-
-  } else {
-
-    if (doOnce) {
-
-      unsigned int pressDuration = millis() - lastPressed;
-
-      if (pressDuration > 0 && pressDuration < 1000) { // short press
-
-        Serial.print("Button pressed for ");
-        Serial.print(pressDuration);
-        Serial.println(" ms.");
-
-        if (lastPressedButton == moveM1Button) {
-          currentTarget = memOne;
-        } else if (lastPressedButton == moveM2Button) {
-          currentTarget = memTwo;
-        }
-
-      } else if (pressDuration >= 1000) {
-
-        Serial.print("Button pressed for ");
-        Serial.print(pressDuration);
-        Serial.println(" ms.");
-
-        if (lastPressedButton == moveM1Button) {
-          storeM1(lastPosition);
-        } else if (lastPressedButton == moveM2Button) {
-          storeM2(lastPosition);
-        }
-
-      }
-
-    }
-
-
-    doOnce = false;
   }
 
+  // if clicks finished, check number of clicks
+  if(millis()-lastReleased > 500){
+    if(clickCount == 2){
+      Serial.println("2 Clicks");
+      autoMove = true;
+      if (lastPressedButton == moveUpCheck) {
+        Serial.println("Move to Mem1");
+        currentTarget = memOne;
+      } else if (lastPressedButton == moveDownCheck) {
+        Serial.println("Move to Mem2");
+        currentTarget = memTwo;
+      }
+    }else if(clickCount == 3){
+      Serial.println("3 Clicks");
+      if (lastPressedButton == moveUpCheck) {
+        Serial.println("Store Mem1");
+        storeM1(lastPosition);
+      } else if (lastPressedButton == moveDownCheck) {
+        Serial.println("Store Mem2");
+        storeM2(lastPosition);
+      }
+    }
+    clickCount = 0;
+    lastPressedButton = 0;
+  }
+    
 }
 
 
 void setup() {
 
-
   Serial.begin(115200);
   while (!Serial) {;};
 
-  Serial.println("IKEA Hackant v1.0");
+  Serial.println("IKEA Hackant v2 by MasterTim17");
   Serial.println("Type 'HELP' to display all commands.");
 
-  pinMode(moveTableUpPin, OUTPUT);
-  pinMode(moveTableDownPin, OUTPUT);
-
-  pinMode(moveUpButton, INPUT);
-  pinMode(moveDownButton, INPUT);
-  pinMode(moveM1Button, INPUT);
-  pinMode(moveM2Button, INPUT);
+  pinMode(moveUp, INPUT); // will switch to output during runtime
+  pinMode(moveDown, INPUT); // will switch to output during runtime
+  pinMode(moveUpCheck, INPUT);
+  pinMode(moveDownCheck, INPUT);
 
   Serial.print("moveUpButton ");
-  Serial.println(moveUpButton);
+  Serial.println(moveUp);
   Serial.print("moveDownButton ");
-  Serial.println(moveDownButton);
-  Serial.print("moveM1Button ");
-  Serial.println(moveM1Button);
-  Serial.print("moveM2Button ");
-  Serial.println(moveM2Button);
-
-  digitalWrite(moveTableUpPin, HIGH);
-  digitalWrite(moveTableDownPin, HIGH);
+  Serial.println(moveDown);
 
   // setup everything that the LIN library needs.
   hardware_clock::setup();
@@ -366,7 +340,9 @@ void loop() {
   // direction == 1 => Target is above table
   // direction == 2 => Target is below table
   uint8_t direction = desiredTableDirection();
-  moveTable(direction);
+  if(autoMove){ //only move Table when in auto mode
+    moveTable(direction);
+  }
 
 
   if (Serial.available() > 0) {
