@@ -227,6 +227,9 @@ void readButtons() {
       autoMove = false;
       Serial.println("manual stop");
     }
+  } else {
+    // enabled manual move -> keep target to position
+    currentTarget = lastPosition;
   }
 
 }
@@ -340,9 +343,7 @@ void loop() {
   // direction == 1 => Target is above table
   // direction == 2 => Target is below table
   uint8_t direction = desiredTableDirection();
-  if(autoMove){ //only move Table when in auto mode
-    moveTable(direction);
-  }
+  moveTable(direction);
 
 
   if (Serial.available() > 0) {
