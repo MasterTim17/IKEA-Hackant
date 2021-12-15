@@ -23,7 +23,11 @@ While the table is moving, you can interrupt it by pressing any key
 
 ## Schematics
 
+<<<<<<< HEAD
 ![Schematic](https://github.com/MasterTim17/IKEA-Hackant/raw/master/Schematic.png)
+=======
+![Schematic](https://github.com/MasterTim17/IKEA-Hackant/raw/master/Schematics.png)
+>>>>>>> 20ebd71cf5f19c21f42633b8f4408e2f77eae599
 
 Im using SMD resistors between the analog pins for a smaller layout.
 
