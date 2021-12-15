@@ -238,7 +238,7 @@ void loopButtons() {
 
   // detect short press
   if(pressedButton != 0){
-    if (lastReleased-lastPressed < 200){
+    if (lastReleased-lastPressed < 300){
       clickCount++;
       lastPressed = 0;
       pressedButton = 0;
