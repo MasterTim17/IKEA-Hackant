@@ -25,6 +25,8 @@ While the table is moving, you can interrupt it by pressing any key
 
 ![Schematic](https://github.com/MasterTim17/IKEA-Hackant/raw/master/Schematic.png)
 
+The power supply of the table says 29V, so make sure the buck converter can withstand 29V.
+
 Im using SMD resistors between the analog pins for a smaller layout.
 
 ![Board](https://github.com/MasterTim17/IKEA-Hackant/raw/master/Board.jpg)
