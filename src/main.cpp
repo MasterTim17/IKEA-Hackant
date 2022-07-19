@@ -193,6 +193,7 @@ void readButtons() {
       lastPressed = millis();
       upState = true; 
       lastPressedButton = pressedButton;
+	  delay(50);
     }
   }else{
     if (upState){
@@ -210,6 +211,7 @@ void readButtons() {
       lastPressed = millis();
       downState = true; 
       lastPressedButton = pressedButton;
+	  delay(50);
     }
   }else{
     if (downState){
@@ -238,7 +240,7 @@ void loopButtons() {
 
   // detect short press
   if(pressedButton != 0){
-    if (lastReleased-lastPressed < 300){
+    if (lastReleased-lastPressed < 500){
       clickCount++;
       lastPressed = 0;
       pressedButton = 0;
